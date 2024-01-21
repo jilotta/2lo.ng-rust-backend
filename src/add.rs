@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder};
+use actix_web::{web::Form, HttpResponse, Responder};
 use tokio_postgres::Row; // the database itself
 
 use url::ParseError;
@@ -7,11 +7,12 @@ use url::Url;
 use crate::choices;
 use crate::http_error;
 use crate::Data;
+use serde::Deserialize;
 
 #[derive(PartialEq, Debug)]
 struct NotUniqueError; // custom error
 
-use actix_web::{get, web::Path};
+use actix_web::{post, web::Path};
 
 async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32), NotUniqueError> {
     let db = data.client.lock().unwrap();
@@ -58,15 +59,21 @@ async fn parse_url(urlstr: String) -> Result<Url, ParseError> {
     }
 }
 
-#[get("api/add/{strid}/{url}")]
-async fn with_strid(data: Data, path: Path<(String, String)>) -> impl Responder {
-    let (strid, url) = path.into_inner();
+#[derive(Deserialize)]
+struct Link {
+    link: String,
+}
+
+#[post("api/add/{strid}")]
+async fn with_strid(data: Data, form: Form<Link>, path: Path<String>) -> impl Responder {
+    let strid = path.into_inner();
+    let url = form.link.clone();
 
     let url = parse_url(url).await.unwrap();
 
-    let response = insert_url(&data, &strid, &url).await;
+    let response = insert_url(&data, &strid.to_lowercase(), &url).await;
     if response == Err(NotUniqueError) {
-        return http_error!(CONTINUE);
+        return http_error!(CONFLICT);
     }
 
     let (_, numid) = response.unwrap();
@@ -74,9 +81,9 @@ async fn with_strid(data: Data, path: Path<(String, String)>) -> impl Responder 
     HttpResponse::Ok().body(format!("{} {}", numid, strid))
 }
 
-#[get("/api/add/{urlstr}")]
-async fn add(data: Data, urlstr: Path<String>) -> impl Responder {
-    let urlstr = urlstr.into_inner();
+#[post("/api/add")]
+async fn add(data: Data, form: Form<Link>) -> impl Responder {
+    let urlstr = form.link.clone();
 
     let url = parse_url(urlstr).await.unwrap();
 

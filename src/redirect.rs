@@ -6,7 +6,7 @@ use actix_web::{HttpResponse, Responder};
 macro_rules! html_redirect {
     ($x:expr) => {
         HttpResponse::Ok().content_type("text/html").body(format!(
-            "<!DOCTYPE html><head><meta http-equiv=\"refresh\" content=\"0; url={}\" />",
+            "<!DOCTYPE html><head><meta http-equiv=\"refresh\" content=\"0; url={}\" /></head><body></body>",
             $x
         ))
     };
