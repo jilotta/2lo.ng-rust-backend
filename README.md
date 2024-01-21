@@ -5,7 +5,7 @@ WARNING! This does not work on Windows GNU toolchain because of the `zstd` libra
 ## Add a link
 To add a link with a random String ID, go to `/api/add` and send the URL as a POST field `link`.
 
-To add a link with a specified String ID, go to `/api/add/<strid>/<url>`  and send the URL as a POST field `link`.\
+To add a link with a specified String ID, go to `/api/add/<strid>`  and send the URL as a POST field `link`.\
 If the String ID is already used, the `409 Conflict` error will be returned.
 
 Both functions will return a string like `<numid> <strid>`. Note that the link should be URL-encoded in both cases.
