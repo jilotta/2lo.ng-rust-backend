@@ -1,4 +1,4 @@
-use actix_web::{web::Form, HttpResponse, Responder};
+use actix_web::{post, web::Form, web::Path, HttpResponse, Responder};
 
 use url::ParseError;
 use url::Url;
@@ -7,11 +7,9 @@ use crate::http_error;
 use crate::Data;
 
 #[derive(PartialEq, Debug)]
-struct NotUniqueError; // custom error
+struct NotUniqueError;
 
-use actix_web::{post, web::Path};
-
-pub fn gen_strid(length: usize) -> String {
+fn gen_strid(length: usize) -> String {
     use rand::Rng;
     const CHARSET: [char; 36] = [
         'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k',
@@ -31,7 +29,7 @@ pub fn gen_strid(length: usize) -> String {
 async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32), NotUniqueError> {
     let db = data.client.lock().unwrap();
 
-    let existing_link: Vec<tokio_postgres::Row> = db
+    let existing_link = db
         .query("SELECT url, id FROM Links WHERE strid = $1", &[&strid])
         .await
         .unwrap();
