@@ -6,6 +6,7 @@ use tokio_postgres::{Client, NoTls}; // the database itself
 mod add;
 mod choices;
 mod redirect;
+mod stats;
 
 use std::sync::Mutex;
 struct SharedState {
@@ -56,6 +57,8 @@ async fn main() -> std::io::Result<()> {
             .service(add::with_strid)
             .service(redirect::by_numid)
             .service(redirect::by_strid)
+            .service(stats::by_numid)
+            .service(stats::by_strid)
     })
     .bind(("127.0.0.1", 80))?
     .run()

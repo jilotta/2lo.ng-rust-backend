@@ -21,12 +21,15 @@ async fn generic(
     let db = data.client.lock().unwrap();
 
     let current_row = if let Some(strid) = strid {
-        db.query("SELECT is_http, url FROM Links WHERE strid = $1", &[&strid])
-            .await
-            .unwrap()
+        db.query(
+            "SELECT is_http, url, strid FROM Links WHERE strid = $1",
+            &[&strid],
+        )
+        .await
+        .unwrap()
     } else {
         db.query(
-            "SELECT is_http, url FROM Links WHERE id = $1",
+            "SELECT is_http, url, strid FROM Links WHERE id = $1",
             &[&numid.unwrap()],
         )
         .await
@@ -38,6 +41,14 @@ async fn generic(
     }
     let url: String = current_row[0].get("url");
     let is_http: bool = current_row[0].get("is_http");
+
+    let strid: String = current_row[0].get("strid");
+    db.execute(
+        "UPDATE Links SET clicks = clicks + 1 WHERE strid = $1",
+        &[&strid],
+    )
+    .await
+    .unwrap();
 
     if is_http {
         return Either::Left(Redirect::to(url));
