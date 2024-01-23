@@ -37,11 +37,12 @@ async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32)
         .unwrap();
 
     let is_http = url.scheme() == "http" || url.scheme() == "https";
-    let strurl = url.as_str();
+    let url = url.as_str();
 
-    if existing_link.len() > 0 {
-        let existing_url: String = existing_link[0].get(0);
-        if existing_url == strurl {
+    let link_exists = existing_link.len() > 0;
+    if link_exists {
+        let existing_url: String = existing_link[0].get("url");
+        if existing_url == url {
             let numid: i32 = existing_link[0].get("id");
             return Ok((String::from(strid), numid));
         } else {
@@ -52,7 +53,7 @@ async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32)
     let numid: i32 = db
         .query(
             "INSERT INTO Links (strid, url, is_http) VALUES ($1, $2, $3) RETURNING id",
-            &[&strid, &strurl, &is_http],
+            &[&strid, &url, &is_http],
         )
         .await
         .unwrap()[0]
