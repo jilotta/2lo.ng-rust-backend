@@ -4,7 +4,6 @@ use tokio::spawn; // for spawning the database client off
 use tokio_postgres::{Client, NoTls}; // the database itself
 
 mod add;
-mod choices;
 mod redirect;
 mod stats;
 

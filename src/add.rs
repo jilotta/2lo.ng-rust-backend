@@ -1,23 +1,37 @@
 use actix_web::{web::Form, HttpResponse, Responder};
-use tokio_postgres::Row; // the database itself
 
 use url::ParseError;
 use url::Url;
 
-use crate::choices;
 use crate::http_error;
 use crate::Data;
-use serde::Deserialize;
 
 #[derive(PartialEq, Debug)]
 struct NotUniqueError; // custom error
 
 use actix_web::{post, web::Path};
 
+pub fn gen_strid(length: usize) -> String {
+    use rand::Rng;
+    const CHARSET: [char; 36] = [
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k',
+        'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+    ];
+
+    let mut rng = rand::thread_rng();
+
+    (0..length)
+        .map(|_| {
+            let idx = rng.gen_range(0..36);
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
 async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32), NotUniqueError> {
     let db = data.client.lock().unwrap();
 
-    let existing_link: Vec<Row> = db
+    let existing_link: Vec<tokio_postgres::Row> = db
         .query("SELECT url, id FROM Links WHERE strid = $1", &[&strid])
         .await
         .unwrap();
@@ -59,7 +73,7 @@ async fn parse_url(urlstr: String) -> Result<Url, ParseError> {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 struct Link {
     link: String,
 }
@@ -89,7 +103,7 @@ async fn add(data: Data, form: Form<Link>) -> impl Responder {
 
     let mut response = Err(NotUniqueError);
     while response == Err(NotUniqueError) {
-        response = insert_url(&data, &choices::gen_strid(3), &url).await;
+        response = insert_url(&data, &gen_strid(3), &url).await;
     }
 
     let (strid, numid) = response.unwrap();
