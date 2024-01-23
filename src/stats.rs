@@ -24,12 +24,12 @@ async fn generic(data: &Data, strid: Option<String>, numid: Option<i32>) -> impl
     }
 }
 
-#[get("/api/clicks/{strid}")]
+#[get("/api/stats/{strid}")]
 async fn by_strid(data: Data, strid: Path<String>) -> impl Responder {
     generic(&data, Some(strid.into_inner()), None).await
 }
 
-#[get("/api/clicks/.{numid}")]
+#[get("/api/stats/.{numid}")]
 async fn by_numid(data: Data, numid: Path<i32>) -> impl Responder {
     generic(&data, None, Some(numid.into_inner())).await
 }
