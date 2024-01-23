@@ -83,9 +83,9 @@ async fn with_strid(data: Data, form: Form<Link>, path: Path<String>) -> impl Re
 
 #[post("/api/add")]
 async fn add(data: Data, form: Form<Link>) -> impl Responder {
-    let urlstr = form.link.clone();
+    let url = form.link.clone();
 
-    let url = parse_url(urlstr).await.unwrap();
+    let url = parse_url(url).await.unwrap();
 
     let mut response = Err(NotUniqueError);
     while response == Err(NotUniqueError) {
