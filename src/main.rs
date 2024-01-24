@@ -59,7 +59,7 @@ async fn main() -> std::io::Result<()> {
             .service(stats::by_numid)
             .service(stats::by_strid)
     })
-    .bind(("127.0.0.1", 80))?
+    .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }
