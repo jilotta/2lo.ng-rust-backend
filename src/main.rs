@@ -7,9 +7,12 @@ mod add;
 mod redirect;
 mod stats;
 
-use std::sync::Mutex;
+use std::env;
+
+use tokio::sync::Mutex;
 struct SharedState {
     client: Mutex<Client>,
+    strid_length: Mutex<usize>,
 }
 type Data = actix_web::web::Data<SharedState>;
 
@@ -27,14 +30,21 @@ async fn index() -> String {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv::dotenv().ok(); // load .env files
+
+    let host = env::var("PG_HOST").unwrap_or("".to_string());
+    let user = env::var("PG_USER").unwrap_or("".to_string());
+    let pass = env::var("PG_PASS").unwrap_or("".to_string());
+    let port = env::var("PG_PORT").unwrap_or("".to_string());
+
     let (client, connection) = tokio_postgres::connect(
-        "host=localhost user=postgres password=zorkedboink port=5432",
+        &format!("host={host} user={user} password={pass} port={port}"),
         NoTls,
     )
     .await
     .unwrap();
 
-    // The connection object performs the actual communication with the database,
+    // The connection object performs the communication with the database,
     // so spawn it off to run on its own.
     spawn(async move {
         if let Err(e) = connection.await {
@@ -42,10 +52,19 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
+    let link_count: i64 = client
+        .query("SELECT count(*) FROM Links", &[])
+        .await
+        .unwrap()[0]
+        .get("count");
+
+    let strid_length: usize = (link_count.ilog(36) + 1) as usize;
+
     // Create the app state object separately so that it is accessible
     // from all threads
     let app_data = Data::new(SharedState {
         client: Mutex::new(client),
+        strid_length: Mutex::new(strid_length),
     });
 
     HttpServer::new(move || {

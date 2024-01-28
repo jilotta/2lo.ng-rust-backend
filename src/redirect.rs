@@ -6,19 +6,23 @@ use actix_web::{HttpResponse, Responder};
 macro_rules! html_redirect {
     ($x:expr) => {
         HttpResponse::Ok().content_type("text/html").body(format!(
-            "<!DOCTYPE html><head><meta http-equiv=\"refresh\" content=\"0; url={}\" /></head><body></body>",
+            "<!DOCTYPE html>\
+             <head>\
+                 <meta http-equiv=\"refresh\" content=\"0; url={}\" />\
+             </head>\
+             <body></body>",
             $x
         ))
     };
 }
 
-use actix_web::Either; // to return either http redirect, html redirect or 404 error
+use actix_web::Either; // either http redirect, html redirect or 404 error
 async fn generic(
     data: &Data,
     strid: Option<String>,
     numid: Option<i32>,
 ) -> Either<Redirect, HttpResponse> {
-    let db = data.client.lock().unwrap();
+    let db = data.client.lock().await;
 
     let current_row = if let Some(strid) = strid {
         db.query(
@@ -36,7 +40,7 @@ async fn generic(
         .unwrap()
     };
 
-    if current_row.len() == 0 {
+    if current_row.is_empty() {
         return Either::Right(http_error!(NOT_FOUND));
     }
     let url: String = current_row[0].get("url");
@@ -51,7 +55,7 @@ async fn generic(
     .unwrap();
 
     if is_http {
-        return Either::Left(Redirect::to(url));
+        Either::Left(Redirect::to(url))
     } else {
         Either::Right(html_redirect!(url))
     }

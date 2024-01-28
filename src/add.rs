@@ -12,8 +12,9 @@ struct NotUniqueError;
 fn gen_strid(length: usize) -> String {
     use rand::Rng;
     const CHARSET: [char; 36] = [
-        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k',
-        'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f',
+        'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '1', '2',
+        '3', '4', '5', '6', '7', '8', '9', '0',
     ];
 
     let mut rng = rand::thread_rng();
@@ -26,8 +27,12 @@ fn gen_strid(length: usize) -> String {
         .collect()
 }
 
-async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32), NotUniqueError> {
-    let db = data.client.lock().unwrap();
+async fn insert_url(
+    data: &Data,
+    strid: &str,
+    url: &Url,
+) -> Result<(String, i32), NotUniqueError> {
+    let db = data.client.lock().await;
 
     let existing_link = db
         .query("SELECT url, id FROM Links WHERE strid = $1", &[&strid])
@@ -37,7 +42,7 @@ async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32)
     let is_http = url.scheme() == "http" || url.scheme() == "https";
     let url = url.as_str();
 
-    let link_exists = existing_link.len() > 0;
+    let link_exists = !existing_link.is_empty();
     if link_exists {
         let existing_url: String = existing_link[0].get("url");
         if existing_url == url {
@@ -50,7 +55,8 @@ async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32)
 
     let numid: i32 = db
         .query(
-            "INSERT INTO Links (strid, url, is_http) VALUES ($1, $2, $3) RETURNING id",
+            "INSERT INTO Links (strid, url, is_http)
+             VALUES ($1, $2, $3) RETURNING id",
             &[&strid, &url, &is_http],
         )
         .await
@@ -59,7 +65,7 @@ async fn insert_url(data: &Data, strid: &str, url: &Url) -> Result<(String, i32)
 
     db.execute("commit", &[]).await.unwrap();
 
-    return Ok((String::from(strid), numid));
+    Ok((String::from(strid), numid))
 }
 
 async fn parse_url(urlstr: String) -> Result<Url, ParseError> {
@@ -78,7 +84,11 @@ struct Link {
 }
 
 #[post("api/add/{strid}")]
-async fn with_strid(data: Data, form: Form<Link>, path: Path<String>) -> impl Responder {
+async fn with_strid(
+    data: Data,
+    form: Form<Link>,
+    path: Path<String>,
+) -> impl Responder {
     let strid = path.into_inner();
     let url = form.link.clone();
 
@@ -96,16 +106,21 @@ async fn with_strid(data: Data, form: Form<Link>, path: Path<String>) -> impl Re
 
 #[post("/api/add")]
 async fn add(data: Data, form: Form<Link>) -> impl Responder {
+    let mut strid_length = data.strid_length.lock().await;
+
     let url = form.link.clone();
 
     let url = parse_url(url).await.unwrap();
 
     let mut response = Err(NotUniqueError);
     while response == Err(NotUniqueError) {
-        response = insert_url(&data, &gen_strid(3), &url).await;
+        response = insert_url(&data, &gen_strid(*strid_length), &url).await;
     }
 
     let (strid, numid) = response.unwrap();
+    if numid.ilog(36) + 1 != *strid_length as u32 {
+        *strid_length = (numid.ilog(36) + 1) as usize;
+    }
 
     HttpResponse::Ok().body(format!("{} {}", numid, strid))
 }

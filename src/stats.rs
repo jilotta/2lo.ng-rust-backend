@@ -3,8 +3,12 @@ use crate::Data;
 use actix_web::{get, web::Path};
 use actix_web::{HttpResponse, Responder};
 
-async fn generic(data: &Data, strid: Option<String>, numid: Option<i32>) -> impl Responder {
-    let db = data.client.lock().unwrap();
+async fn generic(
+    data: &Data,
+    strid: Option<String>,
+    numid: Option<i32>,
+) -> impl Responder {
+    let db = data.client.lock().await;
 
     let current_row = if let Some(strid) = strid {
         db.query("SELECT clicks FROM Links WHERE strid = $1", &[&strid])
@@ -16,10 +20,10 @@ async fn generic(data: &Data, strid: Option<String>, numid: Option<i32>) -> impl
             .unwrap()
     };
 
-    if current_row.len() == 0 {
+    if current_row.is_empty() {
         http_error!(NOT_FOUND)
     } else {
-        let clicks: i32 = current_row[0].get("clicks");
+        let clicks: i64 = current_row[0].get("clicks");
         HttpResponse::Ok().body(clicks.to_string())
     }
 }
