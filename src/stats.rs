@@ -42,3 +42,8 @@ async fn by_strid(data: Data, strid: Path<String>) -> impl Responder {
 async fn by_numid(data: Data, numid: Path<i32>) -> impl Responder {
     generic(&data, None, Some(numid.into_inner())).await
 }
+
+#[get("/api/intstats/thousands_of_links")]
+async fn thousands_of_links(data: Data) -> impl Responder {
+    return (*data.thousands_of_links.lock().await).to_string();
+}

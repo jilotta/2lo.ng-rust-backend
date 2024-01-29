@@ -10,11 +10,12 @@ mod stats;
 use std::env;
 
 use tokio::sync::Mutex;
-struct SharedState {
+struct DataStruct {
     client: Mutex<Client>,
     strid_length: Mutex<usize>,
+    thousands_of_links: Mutex<i32>,
 }
-type Data = actix_web::web::Data<SharedState>;
+type Data = actix_web::web::Data<DataStruct>;
 
 #[macro_export]
 macro_rules! http_error {
@@ -59,12 +60,14 @@ async fn main() -> std::io::Result<()> {
         .get("count");
 
     let strid_length: usize = (link_count.ilog(36) + 1) as usize;
+    let thousands_of_links: i32 = (link_count / 1000) as i32;
 
     // Create the app state object separately so that it is accessible
     // from all threads
-    let app_data = Data::new(SharedState {
+    let app_data = Data::new(DataStruct {
         client: Mutex::new(client),
         strid_length: Mutex::new(strid_length),
+        thousands_of_links: Mutex::new(thousands_of_links),
     });
 
     HttpServer::new(move || {
@@ -77,6 +80,7 @@ async fn main() -> std::io::Result<()> {
             .service(redirect::by_strid)
             .service(stats::by_numid)
             .service(stats::by_strid)
+            .service(stats::thousands_of_links)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

@@ -106,11 +106,11 @@ async fn with_strid(
 
 #[post("/api/add")]
 async fn add(data: Data, form: Form<Link>) -> impl Responder {
-    let mut strid_length = data.strid_length.lock().await;
-
     let url = form.link.clone();
-
     let url = parse_url(url).await.unwrap();
+
+    let mut strid_length = data.strid_length.lock().await;
+    let mut thousands_of_links = data.thousands_of_links.lock().await;
 
     let mut response = Err(NotUniqueError);
     while response == Err(NotUniqueError) {
@@ -118,8 +118,12 @@ async fn add(data: Data, form: Form<Link>) -> impl Responder {
     }
 
     let (strid, numid) = response.unwrap();
+
     if numid.ilog(36) + 1 != *strid_length as u32 {
         *strid_length = (numid.ilog(36) + 1) as usize;
+    }
+    if numid / 1000 != *thousands_of_links {
+        *thousands_of_links = numid / 1000;
     }
 
     HttpResponse::Ok().body(format!("{} {}", numid, strid))

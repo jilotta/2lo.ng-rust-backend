@@ -26,3 +26,9 @@ To show stats for a link via the String ID, go to `/api/stats/<strid>`.\
 To go to a link via the Numerical ID, go to `/api/stats/.<numid>`. Note the dot before the ID. This is to distinguish between Numerical and String IDs.
 
 Both functions may return a string like `<clicks> <url>` or a `404 Not Found` error.
+
+## Show the total link count (in thousands)
+
+To count all the links in thousands, go to `/api/stats/thousands_of_links`.
+
+It will just return the number, like `3` for 3000-3999 links or `1000` for a million links.
