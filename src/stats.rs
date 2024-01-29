@@ -10,21 +10,26 @@ async fn generic(
 ) -> impl Responder {
     let db = data.client.lock().await;
 
-    let current_row = if let Some(strid) = strid {
-        db.query("SELECT clicks FROM Links WHERE strid = $1", &[&strid])
-            .await
-            .unwrap()
+    let (query, elem) = if let Some(strid) = strid {
+        ("strid", strid)
     } else {
-        db.query("SELECT clicks FROM Links WHERE id = $1", &[&numid.unwrap()])
-            .await
-            .unwrap()
+        ("numid", numid.unwrap().to_string())
     };
+
+    let current_row = db
+        .query(
+            &format!("SELECT clicks, url FROM Links WHERE {query} = $1"),
+            &[&elem],
+        )
+        .await
+        .unwrap();
 
     if current_row.is_empty() {
         http_error!(NOT_FOUND)
     } else {
         let clicks: i64 = current_row[0].get("clicks");
-        HttpResponse::Ok().body(clicks.to_string())
+        let url: &str = current_row[0].get("url");
+        HttpResponse::Ok().body(format!("{} {}", clicks, url))
     }
 }
 

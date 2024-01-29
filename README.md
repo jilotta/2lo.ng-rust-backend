@@ -11,18 +11,18 @@ If the String ID is already used, the `409 Conflict` error will be returned.
 
 Both functions will return a string like `<numid> <strid>`.
 
-## Go to a link
+## Go to a shortened link
 
-To go to a link via the String ID, go to `/<strid>`.
+To go to a link via the String ID, go to `/<strid>`.\
 To go to a link via the Numerical ID, go to `/.<numid>`. Note the dot before the ID. This is to distinguish between Numerical and String IDs.
 
 Both of these may return a 308 redirect or an HTML redirect. This is to allow non-HTTP(S) links.
 
 The click counter for each link is incremented every time a redirect happens. No information is recorded.
 
-## Show clicks (stats) for a link
+## Show the click count and the URL (stats) for a shortened link
 
-To show stats for a link via the String ID, go to `/api/stats/<strid>`.
+To show stats for a link via the String ID, go to `/api/stats/<strid>`.\
 To go to a link via the Numerical ID, go to `/api/stats/.<numid>`. Note the dot before the ID. This is to distinguish between Numerical and String IDs.
 
-Both functions may return the click count or a `404 Not Found` error.
+Both functions may return a string like `<clicks> <url>` or a `404 Not Found` error.
