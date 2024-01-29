@@ -9,6 +9,11 @@ use crate::Data;
 #[derive(PartialEq, Debug)]
 struct NotUniqueError;
 
+fn too_short(url: &str, strid_length: usize) -> bool {
+    // hardcoded, probably going to change in the future
+    return url.len() <= ("http://2lo.ng/".len() + strid_length);
+}
+
 fn gen_strid(length: usize) -> String {
     use rand::Rng;
     const CHARSET: [char; 36] = [
@@ -110,6 +115,9 @@ async fn add(data: Data, form: Form<Link>) -> impl Responder {
     let url = parse_url(url).await.unwrap();
 
     let mut strid_length = data.strid_length.lock().await;
+    if too_short(url.as_str(), *strid_length) {
+        return http_error!(URI_TOO_LONG);
+    }
     let mut thousands_of_links = data.thousands_of_links.lock().await;
 
     let mut response = Err(NotUniqueError);
