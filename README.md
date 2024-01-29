@@ -1,5 +1,7 @@
 WARNING! This does not work on Windows GNU toolchain because of the `zstd` library not compiling there. Please use the Windows MSVC toolchain if on Windows.
 
+This is licensed under CC0 1.0 Universal. For more details visit http://creativecommons.org/publicdomain/zero/1.0.
+
 # API
 
 ## Add a link
