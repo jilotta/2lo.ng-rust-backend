@@ -1,22 +1,24 @@
 use actix_web::{post, web::Form, web::Path, HttpResponse, Responder};
 
+//use colored::Colorize;
 use url::ParseError;
 use url::Url;
 
 use crate::http_error;
 use crate::Data;
+use crate::HOST;
 
 #[derive(PartialEq, Debug)]
 struct NotUniqueError;
 
 fn too_short(url: &str, strid_length: usize) -> bool {
-    // hardcoded, probably going to change in the future
-    return url.len() <= ("http://2lo.ng/".len() + strid_length);
+    url.len() <= (HOST.to_string().len() + strid_length)
 }
 
 fn gen_strid(length: usize) -> String {
     use rand::Rng;
-    const CHARSET: [char; 36] = [
+    const CHARSET_LENGTH: usize = 36;
+    const CHARSET: [char; CHARSET_LENGTH] = [
         'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f',
         'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '1', '2',
         '3', '4', '5', '6', '7', '8', '9', '0',
@@ -26,7 +28,7 @@ fn gen_strid(length: usize) -> String {
 
     (0..length)
         .map(|_| {
-            let idx = rng.gen_range(0..36);
+            let idx = rng.gen_range(0..CHARSET_LENGTH);
             CHARSET[idx] as char
         })
         .collect()
@@ -37,17 +39,17 @@ async fn insert_url(
     strid: &str,
     url: &Url,
 ) -> Result<(String, i32), NotUniqueError> {
-    let db = data.client.lock().await;
+    let is_http = url.scheme() == "http" || url.scheme() == "https";
+    let url = url.as_str();
+    let mut db = data.client.lock().await;
+    let transaction = db.transaction().await.unwrap();
 
-    let existing_link = db
+    let existing_link = transaction
         .query("SELECT url, id FROM Links WHERE strid = $1", &[&strid])
         .await
         .unwrap();
-
-    let is_http = url.scheme() == "http" || url.scheme() == "https";
-    let url = url.as_str();
-
     let link_exists = !existing_link.is_empty();
+
     if link_exists {
         let existing_url: String = existing_link[0].get("url");
         if existing_url == url {
@@ -58,7 +60,7 @@ async fn insert_url(
         }
     }
 
-    let numid: i32 = db
+    let numid: i32 = transaction
         .query(
             "INSERT INTO Links (strid, url, is_http)
              VALUES ($1, $2, $3) RETURNING id",
@@ -68,7 +70,7 @@ async fn insert_url(
         .unwrap()[0]
         .get("id");
 
-    db.execute("commit", &[]).await.unwrap();
+    transaction.commit().await.unwrap();
 
     Ok((String::from(strid), numid))
 }
@@ -101,12 +103,17 @@ async fn with_strid(
 
     let response = insert_url(&data, &strid.to_lowercase(), &url).await;
     if response == Err(NotUniqueError) {
-        return http_error!(CONFLICT);
+        http_error!(CONFLICT)
+    } else {
+        let (_, numid) = response.unwrap();
+
+        let mut strid_length = data.strid_length.lock().await;
+        if numid.ilog(36) + 1 != *strid_length as u32 {
+            *strid_length = (numid.ilog(36) + 1) as usize;
+        }
+
+        HttpResponse::Ok().body(format!("{} {}", numid, strid))
     }
-
-    let (_, numid) = response.unwrap();
-
-    HttpResponse::Ok().body(format!("{} {}", numid, strid))
 }
 
 #[post("/api/add")]
@@ -134,5 +141,12 @@ async fn add(data: Data, form: Form<Link>) -> impl Responder {
         *thousands_of_links = numid / 1000;
     }
 
+    /*eprintln!(
+        "{}: {} -> numid: {}, strid: {}",
+        "ADD".green().bold(),
+        url,
+        numid,
+        strid
+    );*/
     HttpResponse::Ok().body(format!("{} {}", numid, strid))
 }

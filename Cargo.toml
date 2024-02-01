@@ -8,6 +8,7 @@ default-run = "twolong_rs"
 
 [dependencies]
 actix-web = "4.4.1"
+colored = "2.1.0"
 dotenv = "0.15.0"
 postgres = "0.19.7"
 rand = "0.8.5"

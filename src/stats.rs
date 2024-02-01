@@ -8,21 +8,21 @@ async fn generic(
     strid: Option<String>,
     numid: Option<i32>,
 ) -> impl Responder {
-    let db = data.client.lock().await;
-
     let (query, elem) = if let Some(strid) = strid {
         ("strid", strid)
     } else {
         ("numid", numid.unwrap().to_string())
     };
 
-    let current_row = db
-        .query(
+    let current_row = {
+        let db = data.client.lock().await;
+        db.query(
             &format!("SELECT clicks, url FROM Links WHERE {query} = $1"),
             &[&elem],
         )
         .await
-        .unwrap();
+        .unwrap()
+    };
 
     if current_row.is_empty() {
         http_error!(NOT_FOUND)
@@ -45,5 +45,5 @@ async fn by_numid(data: Data, numid: Path<i32>) -> impl Responder {
 
 #[get("/api/intstats/thousands_of_links")]
 async fn thousands_of_links(data: Data) -> impl Responder {
-    return (*data.thousands_of_links.lock().await).to_string();
+    data.thousands_of_links.lock().await.to_string()
 }

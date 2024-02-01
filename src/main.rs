@@ -9,6 +9,9 @@ mod stats;
 
 use std::env;
 
+mod host;
+const HOST: host::Host = host::Host("127.0.0.1", 8080);
+
 use tokio::sync::Mutex;
 struct DataStruct {
     client: Mutex<Client>,
@@ -59,8 +62,14 @@ async fn main() -> std::io::Result<()> {
         .unwrap()[0]
         .get("count");
 
-    let strid_length: usize = (link_count.ilog(36) + 1) as usize;
-    let thousands_of_links: i32 = (link_count / 1000) as i32;
+    let (strid_length, thousands_of_links) = if link_count == 0 {
+        (1, 0)
+    } else {
+        (
+            (link_count.ilog(36) + 1) as usize,
+            (link_count / 1000) as i32,
+        )
+    };
 
     // Create the app state object separately so that it is accessible
     // from all threads
@@ -82,7 +91,7 @@ async fn main() -> std::io::Result<()> {
             .service(stats::by_strid)
             .service(stats::thousands_of_links)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(HOST)?
     .run()
     .await
 }
