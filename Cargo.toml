@@ -13,6 +13,6 @@ easy-log = "0.1.1"
 postgres = "0.19.7"
 rand = "0.8.5"
 serde = { version = "1.0.196", features = ["derive"] }
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.36.0", features = ["rt"] }
 tokio-postgres = "0.7.10"
 url = "2.5.0"
