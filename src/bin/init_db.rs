@@ -1,6 +1,6 @@
 use std::env;
 
-#[tokio::main()]
+#[actix_web::main()]
 async fn main() {
     dotenv::dotenv().ok(); // load .env files
 
