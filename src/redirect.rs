@@ -2,6 +2,7 @@ use crate::http_error;
 use crate::Data;
 use actix_web::{get, web::Path, web::Redirect};
 use actix_web::{HttpResponse, Responder};
+use easy_log::{map, Logger};
 
 macro_rules! html_redirect {
     ($x:expr) => {
@@ -22,25 +23,35 @@ async fn generic(
     strid: Option<String>,
     numid: Option<i32>,
 ) -> Either<Redirect, HttpResponse> {
+    let logger = Logger::new().action("REDIRECT");
+
     let db = data.client.lock().await;
 
-    let current_row = if let Some(strid) = strid {
-        db.query(
-            "SELECT is_http, url, strid FROM Links WHERE strid = $1",
-            &[&strid],
+    let (logger, current_row) = if let Some(strid) = strid {
+        (
+            logger.input(map![strid]),
+            db.query(
+                "SELECT is_http, url, strid FROM Links WHERE strid = $1",
+                &[&strid],
+            )
+            .await
+            .unwrap(),
         )
-        .await
-        .unwrap()
     } else {
-        db.query(
-            "SELECT is_http, url, strid FROM Links WHERE id = $1",
-            &[&numid.unwrap()],
+        let numid = numid.unwrap();
+        (
+            logger.input(map![numid]),
+            db.query(
+                "SELECT is_http, url, strid FROM Links WHERE id = $1",
+                &[&numid],
+            )
+            .await
+            .unwrap(),
         )
-        .await
-        .unwrap()
     };
 
     if current_row.is_empty() {
+        logger.output("404 Not Found").err();
         return Either::Right(http_error!(NOT_FOUND));
     }
     let url: String = current_row[0].get("url");
@@ -55,8 +66,10 @@ async fn generic(
     .unwrap();
 
     if is_http {
+        logger.output(map![redirect: url]).ok();
         Either::Left(Redirect::to(url))
     } else {
+        logger.output(map![html_redirect: url]).ok();
         Either::Right(html_redirect!(url))
     }
 }

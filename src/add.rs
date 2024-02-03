@@ -1,8 +1,9 @@
 use actix_web::{post, web::Form, web::Path, HttpResponse, Responder};
 
-//use colored::Colorize;
 use url::ParseError;
 use url::Url;
+
+use easy_log::{map, Logger};
 
 use crate::http_error;
 use crate::Data;
@@ -101,8 +102,11 @@ async fn with_strid(
 
     let url = parse_url(url).await.unwrap();
 
+    let logger = Logger::new().action("ADD-STRID").input(map![url, strid]);
+
     let response = insert_url(&data, &strid.to_lowercase(), &url).await;
     if response == Err(NotUniqueError) {
+        logger.output("409 Conflict").err();
         http_error!(CONFLICT)
     } else {
         let (_, numid) = response.unwrap();
@@ -112,6 +116,7 @@ async fn with_strid(
             *strid_length = (numid.ilog(36) + 1) as usize;
         }
 
+        logger.output(map![numid]).ok();
         HttpResponse::Ok().body(format!("{} {}", numid, strid))
     }
 }
@@ -121,8 +126,11 @@ async fn add(data: Data, form: Form<Link>) -> impl Responder {
     let url = form.link.clone();
     let url = parse_url(url).await.unwrap();
 
+    let logger = Logger::new().action("ADD").input(&url);
+
     let mut strid_length = data.strid_length.lock().await;
     if too_short(url.as_str(), *strid_length) {
+        logger.output("414 URI Too Long").err();
         return http_error!(URI_TOO_LONG);
     }
     let mut thousands_of_links = data.thousands_of_links.lock().await;
@@ -141,12 +149,6 @@ async fn add(data: Data, form: Form<Link>) -> impl Responder {
         *thousands_of_links = numid / 1000;
     }
 
-    /*eprintln!(
-        "{}: {} -> numid: {}, strid: {}",
-        "ADD".green().bold(),
-        url,
-        numid,
-        strid
-    );*/
+    logger.output(map![numid, strid]).ok();
     HttpResponse::Ok().body(format!("{} {}", numid, strid))
 }

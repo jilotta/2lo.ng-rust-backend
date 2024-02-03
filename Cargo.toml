@@ -8,11 +8,11 @@ default-run = "twolong_rs"
 
 [dependencies]
 actix-web = "4.4.1"
-colored = "2.1.0"
 dotenv = "0.15.0"
+easy-log = "0.1.1"
 postgres = "0.19.7"
 rand = "0.8.5"
-serde = { version = "1.0.195", features = ["derive"] }
-tokio = { version = "1.35.1", features = ["full"] }
+serde = { version = "1.0.196", features = ["derive"] }
+tokio = { version = "1.36.0", features = ["full"] }
 tokio-postgres = "0.7.10"
 url = "2.5.0"
