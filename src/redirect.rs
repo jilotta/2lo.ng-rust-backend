@@ -4,6 +4,7 @@ use actix_web::{get, web::Path, web::Redirect};
 use actix_web::{HttpResponse, Responder};
 use easy_log::{map, Logger};
 
+// will change later
 macro_rules! html_redirect {
     ($x:expr) => {
         HttpResponse::Ok().content_type("text/html").body(format!(
