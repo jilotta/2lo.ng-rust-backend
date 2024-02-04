@@ -487,9 +487,9 @@ checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
 
 [[package]]
 name = "easy-log"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f599d9aeb20db88c45b63ab0c70079c62ae53ebaf78e5470df76a36b8dfd865"
+checksum = "7d520701b9642e42192afb1bafdf12111165637fc1edbe4e4209aecfcd654b66"
 dependencies = [
  "chrono",
  "colored",

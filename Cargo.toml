@@ -9,7 +9,7 @@ default-run = "twolong_rs"
 [dependencies]
 actix-web = "4.4.1"
 dotenv = "0.15.0"
-easy-log = "0.1.1"
+easy-log = "0.1.2"
 postgres = "0.19.7"
 rand = "0.8.5"
 serde = { version = "1.0.196", features = ["derive"] }
