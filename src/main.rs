@@ -1,4 +1,7 @@
-use actix_web::{App, HttpServer};
+use actix_web::{
+    middleware::{Logger, NormalizePath},
+    App, HttpServer,
+};
 
 use tokio::spawn; // for spawning the database client off
 use tokio_postgres::{Client, NoTls}; // the database itself
@@ -34,6 +37,9 @@ async fn index() -> String {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init_from_env(
+        env_logger::Env::default().default_filter_or("info"),
+    );
     dotenv::dotenv().ok(); // load .env files
 
     let host = env::var("PG_HOST").unwrap_or("".to_string());
@@ -90,6 +96,9 @@ async fn main() -> std::io::Result<()> {
             .service(stats::by_numid)
             .service(stats::by_strid)
             .service(stats::thousands_of_links)
+            .wrap(Logger::default())
+            .wrap(NormalizePath::trim())
+            .wrap(actix_cors::Cors::permissive())
     })
     .bind(HOST)?
     .run()
